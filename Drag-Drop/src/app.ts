@@ -1,3 +1,32 @@
+//Validation
+interface Validatable {
+    value: string | number;
+    required?: boolean;
+    minLength?: number;
+    maxLength?: number;
+    min?: number;
+    max?: number;
+}
+
+function validate(input: Validatable) {
+    console.log(input);
+    let isValid = true;
+    if (input.required && input.value.toString().trim().length == 0)
+        isValid = false;
+    if (typeof input.value === "string") {
+        if (input.minLength != null && input.value.length < input.minLength)
+            isValid = false;
+        if (input.maxLength != null && input.value.length > input.maxLength)
+            isValid = false;
+    } else if (typeof input.value === "number") {
+        if (input.min != null && input.value < input.min) isValid = false;
+        if (input.max != null && input.value > input.max) isValid = false;
+    }
+    console.log(isValid);
+    return isValid;
+}
+
+//Decorator
 function AutoBind(_: any, _2: string, descriptor: PropertyDescriptor) {
     const originalMethod = descriptor.value;
     const newDescriptor: PropertyDescriptor = {
@@ -8,6 +37,37 @@ function AutoBind(_: any, _2: string, descriptor: PropertyDescriptor) {
         },
     };
     return newDescriptor;
+}
+
+class ProjectList {
+    templateElement: HTMLTemplateElement;
+    hostElement: HTMLDivElement;
+    element: HTMLElement;
+    constructor(private type: "active" | "finished") {
+        this.templateElement = document.getElementById(
+            "project-list"
+        )! as HTMLTemplateElement;
+        this.hostElement = document.getElementById("app")! as HTMLDivElement;
+
+        const importedNode = document.importNode(
+            this.templateElement.content,
+            true
+        );
+        this.element = importedNode.firstElementChild! as HTMLElement;
+        this.element.id = `${type}-projects`;
+        this.attach();
+        this.renderContent();
+    }
+    private attach() {
+        this.hostElement.insertAdjacentElement("beforeend", this.element);
+    }
+    private renderContent() {
+        const listId = `${this.type}-projects-list`;
+        this.element.querySelector("ul")!.id = listId;
+        this.element.querySelector(
+            "h2"
+        )!.textContent = `${this.type.toUpperCase()} PROJECTS`;
+    }
 }
 
 class ProjectInput {
@@ -50,8 +110,30 @@ class ProjectInput {
         const enteredTitle = this.titleInputElement.value;
         const enteredDescription = this.descriptionInputElement.value;
         const enteredPeople = +this.peopleInputElement.value;
-        //create validator decorator
-        return [enteredTitle, enteredDescription, enteredPeople];
+
+        const titleValidatable: Validatable = {
+            value: enteredTitle,
+            required: true,
+        };
+
+        const descriptionValidatable: Validatable = {
+            value: enteredDescription,
+            required: true,
+            minLength: 5,
+        };
+        const peopleValidatable: Validatable = {
+            value: +enteredPeople,
+            required: true,
+            min: 1,
+            max: 5,
+        };
+        if (
+            validate(titleValidatable) &&
+            validate(descriptionValidatable) &&
+            validate(peopleValidatable)
+        )
+            return [enteredTitle, enteredDescription, enteredPeople];
+        else alert("invalid input");
     }
     private clearInputs() {
         this.titleInputElement.value = "";
@@ -74,3 +156,5 @@ class ProjectInput {
 }
 
 const projInput = new ProjectInput();
+const activePrjList = new ProjectList("active");
+const finishedPrjList = new ProjectList("finished");
